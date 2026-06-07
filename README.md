@@ -4,6 +4,10 @@ A production-style AI Agent API built with FastAPI, featuring JWT authentication
 
 This project demonstrates a stable and extensible AI assistant built on a Tool Registry Agent Pattern, where tools are automatically exposed to the LLM, executed safely, and used to generate grounded responses.
 
+# Version
+
+At Render I use the PYTHON_VERSION environment variable to tell Render to use Python version 3.11. Locally I am using Python 3.12
+
 ---
 
 ## 📌 Project Info
