@@ -4,19 +4,19 @@ import logging
 import traceback
 from typing import Dict, Any
 
-import requests
 from fastapi import APIRouter, Depends, HTTPException
 
 from models import LoginRequest, TokenResponse, ChatRequest, ChatResponse
 from auth import create_access_token, verify_token
 from config import FAKE_USERNAME, FAKE_PASSWORD
-
 from agent import run_agent, TOOL_REGISTRY
+from tools.wikipedia import wikipedia_tool
 
 logger = logging.getLogger(__name__)
+
+# ✅ ONE router ONLY
 router = APIRouter()
 
-HEADERS = {"User-Agent": "fastapi-llm-agent/1.0"}
 
 # ------------------------------
 # LOGIN
@@ -66,7 +66,7 @@ def chat(request: ChatRequest, user: str = Depends(verify_token)):
 
 
 # ------------------------------
-# HEALTH
+# SYSTEM HEALTH
 # ------------------------------
 @router.get("/health")
 def health():
@@ -79,20 +79,19 @@ def health():
 
 
 # ------------------------------
-# TOOL HEALTH (DYNAMIC)
+# TOOL HEALTH (GENERIC)
 # ------------------------------
 def _check_tool(tool_name: str, test_input: str = None) -> Dict[str, Any]:
     try:
         tool = TOOL_REGISTRY.get(tool_name)
         if not tool:
-            return {"status": "missing"}
-        
-        # Use a valid math input for calculator
+            return {"status": "missing", "tool": tool_name}
+
         if tool_name == "calculator":
             test_input = "1+1"
         else:
             test_input = test_input or "test"
-            
+
         result = tool(test_input)
 
         return {
@@ -113,9 +112,61 @@ def health_tools():
     return {name: _check_tool(name) for name in TOOL_REGISTRY.keys()}
 
 
-@router.get("/health/tools/{tool_name}")
-def health_single_tool(tool_name: str):
-    if tool_name not in TOOL_REGISTRY:
-        raise HTTPException(status_code=404, detail="Tool not found")
+# ------------------------------
+# WIKIPEDIA HEALTH (SPECIALIZED)
+# ------------------------------
+@router.get("/health/wiki")
+def health_wiki():
+    test_query = "What is Python?"
 
-    return _check_tool(tool_name)
+    try:
+        result = wikipedia_tool(test_query)
+
+        # 1. Type check
+        if not isinstance(result, dict):
+            return {
+                "status": "fail",
+                "tool": "wikipedia_tool",
+                "reason": "invalid_response_type",
+            }
+
+        # 2. API failure / blocked
+        if not result.get("success"):
+            return {
+                "status": "fail",
+                "tool": "wikipedia_tool",
+                "reason": "api_failure_or_blocked",
+                "details": result,
+            }
+
+        # 3. Content sanity check
+        content = result.get("content", "")
+        if not content or len(content) < 20:
+            return {
+                "status": "fail",
+                "tool": "wikipedia_tool",
+                "reason": "empty_or_truncated_response",
+                "details": result,
+            }
+
+        # ✅ OK
+        return {
+            "status": "ok",
+            "tool": "wikipedia_tool",
+            "query": test_query,
+            "title": result.get("title"),
+            "content_snippet": content[:200],
+        }
+
+    except Exception as e:
+        logger.error(f"Wikipedia health check failed: {e}")
+
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "fail",
+                "tool": "wikipedia_tool",
+                "reason": "exception_thrown",
+                "error": str(e),
+            },
+        )

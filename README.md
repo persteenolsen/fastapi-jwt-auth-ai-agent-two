@@ -15,7 +15,7 @@ At Render I use the PYTHON_VERSION environment variable to tell Render to use Py
 - Version: 0.1.0
 - Python: 3.11 / 3.12
 - Architecture: Dynamic Tool Registry Agent (plan → execute → synthesize)
-- Last Updated: 07-06-2026
+- Last Updated: 08-06-2026
 
 ---
 
