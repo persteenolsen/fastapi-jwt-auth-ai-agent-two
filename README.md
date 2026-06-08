@@ -1,4 +1,4 @@
-# 🚀 FastAPI AI Agent with Dynamic Tool Registry + JWT Auth + Groq LLM
+# 🚀 FastAPI with JWT Auth serving a Tool-Calling AI Agent
 
 A production-style AI Agent API built with FastAPI, featuring JWT authentication and a fully dynamic tool-calling architecture powered by Groq LLMs.
 
