@@ -227,20 +227,20 @@ POST /chat
 
 POST /chat  
 {  
-  "message": "What is the capical of France?"  
+  "message": "What is AI?"  
 }  
 
 {
-  "response": "According to the provided data from Wikipedia, the capital of France has been Paris since its liberation in 1944. This information is based on the content of the \"List of capitals of France\" page. Therefore, the current capital of France is Paris.",
+  "response": "According to the provided Wikipedia data, Artificial Intelligence (AI) refers to the ability of computational systems to perform tasks that are typically associated with human intelligence. These tasks include learning, reasoning, problem-solving, perception, and decision-making. In essence, AI is a field of research that focuses on developing methods and software to enable machines to perceive their environment, learn, and take actions to achieve specific goals.",
   "tools_used": [
     {
       "tool": "wikipedia",
-      "query": "Capital of France",
+      "query": "Artificial intelligence",
       "success": true
     }
   ],
   "steps": [
-    "tool_plan=[{'name': 'wikipedia', 'query': 'Capital of France'}]"
+    "tool_plan=[{'name': 'wikipedia', 'query': 'Artificial intelligence'}]"
   ],
   "error_id": null
 }
