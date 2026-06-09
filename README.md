@@ -15,7 +15,7 @@ At Render I use the PYTHON_VERSION environment variable to tell Render to use Py
 - Version: 0.1.0
 - Python: 3.11 / 3.12
 - Architecture: Dynamic Tool Registry Agent (plan → execute → synthesize)
-- Last Updated: 08-06-2026
+- Last Updated: 09-06-2026
 
 ---
 
@@ -227,20 +227,20 @@ POST /chat
 
 POST /chat  
 {  
-  "message": "What is Python?"  
+  "message": "What is the capical of France?"  
 }  
 
 {
-  "response": "According to the provided Wikipedia data, Python is a high-level, general-purpose programming language. It is designed to be easy to read and write, with a focus on simplicity and code readability. Python supports multiple programming styles, but it particularly emphasizes object-oriented programming and dynamic typing. Additionally, it has a comprehensive standard library and features like garbage collection, making it a versatile and user-friendly language.",
+  "response": "According to the provided data from Wikipedia, the capital of France has been Paris since its liberation in 1944. This information is based on the content of the \"List of capitals of France\" page. Therefore, the current capital of France is Paris.",
   "tools_used": [
     {
       "tool": "wikipedia",
-      "query": "Python (programming language)",
+      "query": "Capital of France",
       "success": true
     }
   ],
   "steps": [
-    "tool_plan=[{'name': 'wikipedia', 'query': 'Python (programming language)'}]"
+    "tool_plan=[{'name': 'wikipedia', 'query': 'Capital of France'}]"
   ],
   "error_id": null
 }

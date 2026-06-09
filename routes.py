@@ -117,7 +117,8 @@ def health_tools():
 # ------------------------------
 @router.get("/health/wiki")
 def health_wiki():
-    test_query = "What is Python?"
+
+    test_query = "What is the capital of France?"
 
     try:
         result = wikipedia_tool(test_query)
