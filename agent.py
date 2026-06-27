@@ -15,7 +15,18 @@ logger = logging.getLogger(__name__)
 # LLM
 # ------------------------------
 llm = ChatGroq(
-    model="llama-3.3-70b-versatile",
+
+    # 27-06-2026 - Will soon be out of service by Groq.
+    # Instead the below two models are recomended by Groq
+    #model="llama-3.3-70b-versatile",
+    
+    # 27-06-2026 - Recomended by Groq but not working with my agent.py!
+    # I belive the <think> is causing strange response
+    #model="qwen/qwen3.6-27b",
+    
+    # 27-06-2026 - Recomended by Groq and now used!
+    model="openai/gpt-oss-20b",
+
     temperature=0,
     api_key=GROQ_API_KEY,
 )

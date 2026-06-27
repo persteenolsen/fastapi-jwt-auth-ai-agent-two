@@ -15,7 +15,7 @@ At Render I use the PYTHON_VERSION environment variable to tell Render to use Py
 - Version: 0.1.0
 - Python: 3.11 / 3.12
 - Architecture: Dynamic Tool Registry Agent (plan → execute → synthesize)
-- Last Updated: 09-06-2026
+- Last Updated: 27-06-2026
 
 ---
 
@@ -40,7 +40,7 @@ At Render I use the PYTHON_VERSION environment variable to tell Render to use Py
 ---
 
 ### 🧠 LLM Integration (Groq)
-- Model: llama-3.3-70b-versatile
+- Model: openai/gpt-oss-20b
 - High-speed inference via Groq API
 - Temperature set to 0 for deterministic output
 - Used for tool routing, query rewriting, and final synthesis
@@ -189,7 +189,7 @@ POST /chat
 } 
 
 {
-  "response": "What do you call a fake noodle? An impasta.",
+  "response": "Why don’t skeletons fight each other?  \nThey don’t have the guts.",
   "tools_used": [],
   "steps": [
     "tool_plan=[]"
@@ -204,10 +204,10 @@ POST /chat
 POST /chat  
 {  
   "message": "What is 25 * 18 + 10?"  
-}  
+} 
 
 {
-  "response": "To calculate the result of the expression \"25 * 18 + 10\", we can follow the order of operations. First, we multiply 25 by 18, which equals 450. Then, we add 10 to this result, giving us a final answer of 460. This calculation is confirmed by the provided tool data from the calculator, which also yields a result of 460 for the expression \"25 * 18 + 10\". Therefore, the answer to the given expression is 460.",
+  "response": "The calculation is straightforward:\n\n- Multiply 25 by 18, which gives 450.\n- Add 10 to that product.\n\nSo, \\(25 \\times 18 + 10 = 460\\).",
   "tools_used": [
     {
       "tool": "calculator",
@@ -231,7 +231,7 @@ POST /chat
 }  
 
 {
-  "response": "According to the provided Wikipedia data, Artificial Intelligence (AI) refers to the ability of computational systems to perform tasks that are typically associated with human intelligence. These tasks include learning, reasoning, problem-solving, perception, and decision-making. In essence, AI is a field of research that focuses on developing methods and software to enable machines to perceive their environment, learn, and take actions to achieve specific goals.",
+  "response": "Artificial intelligence (AI) is the capability of computational systems to perform tasks that are normally associated with human intelligence. These tasks include learning, reasoning, problem‑solving, perception, and decision‑making. AI is a research field that spans engineering, mathematics, and computer science, and it focuses on developing methods and software that allow machines to perceive their environment and use learning and intelligence to take actions that maximize their chances of achieving defined goals.",
   "tools_used": [
     {
       "tool": "wikipedia",
