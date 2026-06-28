@@ -123,6 +123,53 @@ Return a natural, helpful explanation.
         logger.error(f"Synthesis error: {e}")
         return "Could not synthesize an answer from the tools."
 
+
+# ------------------------------
+# HELPER FUNCTION - AGENT CORE
+# ------------------------------ 
+def execute_tools(
+    tools_to_use: List[Dict[str, Any]],
+    raw_input: str,
+    tools_used: List[Dict[str, Any]],
+    verified_results: List[Dict[str, Any]],
+) -> None:
+    for tool in tools_to_use:
+        name = tool.get("name")
+        query = tool.get("query", raw_input)
+        tool_func = TOOL_REGISTRY.get(name)
+
+        if not tool_func:
+            tools_used.append({
+                "tool": name,
+                "query": query,
+                "success": False,
+            })
+            continue
+
+        try:
+            if name == "wikidata":
+                query = rewrite_for_wikidata(query)
+
+            result = tool_func(query)
+            success = bool(result.get("success", False))
+
+            tools_used.append({
+                "tool": name,
+                "query": query,
+                "success": success,
+            })
+
+            if success:
+                verified_results.append(result)
+
+        except Exception as e:
+            logger.error(f"Tool error ({name}): {e}")
+            tools_used.append({
+                "tool": name,
+                "query": query,
+                "success": False,
+            })
+
 # ------------------------------
 # AGENT CORE
 # ------------------------------
@@ -210,42 +257,7 @@ Question:
         # ------------------------------
         # 3. EXECUTE TOOLS
         # ------------------------------
-        for tool in tools_to_use:
-            name = tool.get("name")
-            query = tool.get("query", raw_input)
-            tool_func = TOOL_REGISTRY.get(name)
-
-            if not tool_func:
-                tools_used.append({
-                    "tool": name,
-                    "query": query,
-                    "success": False,
-                })
-                continue
-
-            try:
-                if name == "wikidata":
-                    query = rewrite_for_wikidata(query)
-
-                result = tool_func(query)
-                success = bool(result.get("success", False))
-
-                tools_used.append({
-                    "tool": name,
-                    "query": query,
-                    "success": success,
-                })
-
-                if success:
-                    verified_results.append(result)
-
-            except Exception as e:
-                logger.error(f"Tool error ({name}): {e}")
-                tools_used.append({
-                    "tool": name,
-                    "query": query,
-                    "success": False,
-                })
+        execute_tools(tools_to_use, raw_input, tools_used, verified_results)
 
         # ------------------------------
         # 4. SYNTHESIZE FINAL ANSWER

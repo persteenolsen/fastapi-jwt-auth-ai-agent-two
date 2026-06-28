@@ -15,7 +15,7 @@ At Render I use the PYTHON_VERSION environment variable to tell Render to use Py
 - Version: 0.1.0
 - Python: 3.11 / 3.12
 - Architecture: Dynamic Tool Registry Agent (plan → execute → synthesize)
-- Last Updated: 27-06-2026
+- Last Updated: 28-06-2026
 
 ---
 
@@ -207,7 +207,7 @@ POST /chat
 } 
 
 {
-  "response": "The calculation is straightforward:\n\n- Multiply 25 by 18, which gives 450.\n- Add 10 to that product.\n\nSo, \\(25 \\times 18 + 10 = 460\\).",
+  "response": "The calculation 25 × 18 + 10 equals **460**.",
   "tools_used": [
     {
       "tool": "calculator",
