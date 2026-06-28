@@ -178,6 +178,83 @@ This ensures:
 
 ## 🏗️ Architecture
 
+## 🧠 LLM Swap Resilience (Important Design Insight)
+
+One of the key architectural strengths of this system is that it is **largely model-agnostic**. The underlying agent does not depend on a specific LLM behaving perfectly, because the LLM is not responsible for execution or system control.
+
+### 🔁 What happens if you change the LLM?
+
+If the underlying model is replaced (e.g., switching to a newer or different provider/model), the system will continue to function because:
+
+### ✔ The LLM only handles:
+- Tool planning (deciding *what to use*)
+- Response synthesis (formatting final output)
+
+### ✔ The system does NOT rely on the LLM for:
+- Tool execution
+- Mathematical correctness
+- External data retrieval
+- Safety or validation logic
+
+These are handled entirely by deterministic Python code and external tools.
+
+---
+
+## ⚙️ Why the system remains stable
+
+The architecture is intentionally designed so that:
+
+### 🧩 Deterministic layers are LLM-independent
+- Calculator (AST-based execution engine)
+- Wikipedia API retrieval
+- Wikidata search API
+- Tool registry validation
+- Execution pipeline (Plan → Execute → Synthesize)
+
+### 🧠 LLM is a replaceable component
+The model acts as a **reasoning assistant**, not a system controller.
+
+---
+
+## 🚨 What may change when swapping LLMs
+
+While the system remains stable, output behavior may vary in:
+
+### 📌 Tool selection quality
+- Stronger models → better tool usage decisions
+- Weaker models → may skip tools more often or overuse direct answers
+
+### 📌 Query formulation quality
+- Better models produce more precise search queries (e.g. disambiguated Wikipedia titles)
+- Weaker models may generate generic or ambiguous queries
+
+### 📌 Response style
+- Tone, verbosity, and formatting may change
+- But factual correctness remains grounded in tool outputs
+
+---
+
+## 🧠 Key Principle
+
+> The system is designed so that intelligence can change, but execution correctness cannot.
+
+This separation ensures:
+- Stable production behavior
+- Safe model upgrades or replacements
+- Predictable system outputs even with different LLM providers
+
+---
+
+## 🔥 Practical Implication
+
+You can upgrade, downgrade, or replace the LLM at any time without modifying:
+- Tool implementations
+- Agent architecture
+- Execution pipeline
+- API structure
+
+Only prompt behavior and reasoning quality will vary — not system correctness or safety.
+
 ### 🟢 Structured Tool Agent (Current System)
 
 This system is built around a strict separation of concerns:
