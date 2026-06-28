@@ -15,18 +15,7 @@ logger = logging.getLogger(__name__)
 # LLM
 # ------------------------------
 llm = ChatGroq(
-
-    # 27-06-2026 - Will soon be out of service by Groq.
-    # Instead the below two models are recomended by Groq
-    #model="llama-3.3-70b-versatile",
-    
-    # 27-06-2026 - Recomended by Groq but not working with my agent.py!
-    # I belive the <think> is causing strange response
-    #model="qwen/qwen3.6-27b",
-    
-    # 27-06-2026 - Recomended by Groq and now used!
     model="openai/gpt-oss-20b",
-
     temperature=0,
     api_key=GROQ_API_KEY,
 )
@@ -52,13 +41,13 @@ def safe_json_load(text: str) -> Dict[str, Any]:
         return {}
 
 # ------------------------------
-# NORMALIZE INPUT
+# NORMALIZATION
 # ------------------------------
 def normalize(text: str) -> str:
     return text.strip().replace("\u00a0", "").replace("\n", "")
 
 # ------------------------------
-# ROBUST MATH DETECTION
+# MATH DETECTION
 # ------------------------------
 def is_math_query(text: str) -> bool:
     text = normalize(text)
@@ -69,7 +58,7 @@ def is_math_query(text: str) -> bool:
     return all(c in allowed_chars for c in text)
 
 # ------------------------------
-# WIKIDATA QUERY REWRITE
+# WIKIDATA REWRITE
 # ------------------------------
 def rewrite_for_wikidata(query: str) -> str:
     prompt = f"""
@@ -88,7 +77,7 @@ Question: {query}
         return query
 
 # ------------------------------
-# TOOL PROMPT BUILDER
+# TOOL INFO
 # ------------------------------
 def build_tool_prompt() -> str:
     return "\n".join([
@@ -98,7 +87,7 @@ def build_tool_prompt() -> str:
     ])
 
 # ------------------------------
-# SYNTHESIS PROMPT
+# SYNTHESIS
 # ------------------------------
 def synthesize_answer(question: str, tool_data: List[Dict[str, Any]]) -> str:
     prompt = f"""
@@ -123,19 +112,52 @@ Return a natural, helpful explanation.
         logger.error(f"Synthesis error: {e}")
         return "Could not synthesize an answer from the tools."
 
+# =========================================================
+# PHASE 1 — PLANNING
+# =========================================================
+def plan_tools(raw_input: str) -> List[Dict[str, Any]]:
+    tool_prompt = f"""
+You are a tool router. Decide which tools (if any) to use.
 
-# ------------------------------
-# HELPER FUNCTION - AGENT CORE
-# ------------------------------ 
+Available tools:
+{build_tool_prompt()}
+
+Rules:
+- calculator ONLY for math
+- wikipedia for explanations
+- wikidata for structured facts
+- return JSON only
+- if casual: {{"tools": []}}
+
+Format:
+{{
+  "tools": [
+    {{"name": "tool_name", "query": "query"}}
+  ]
+}}
+
+Question:
+{raw_input}
+"""
+
+    decision_text = llm.invoke(tool_prompt).content.strip()
+    decision = safe_json_load(decision_text)
+    return decision.get("tools", [])
+
+# =========================================================
+# PHASE 2 — EXECUTION
+# =========================================================
 def execute_tools(
     tools_to_use: List[Dict[str, Any]],
     raw_input: str,
     tools_used: List[Dict[str, Any]],
     verified_results: List[Dict[str, Any]],
 ) -> None:
+
     for tool in tools_to_use:
         name = tool.get("name")
         query = tool.get("query", raw_input)
+
         tool_func = TOOL_REGISTRY.get(name)
 
         if not tool_func:
@@ -170,9 +192,20 @@ def execute_tools(
                 "success": False,
             })
 
-# ------------------------------
-# AGENT CORE
-# ------------------------------
+# =========================================================
+# PHASE 3 — SYNTHESIS
+# =========================================================
+def synthesize(raw_input: str, verified_results: List[Dict[str, Any]]) -> str:
+    if verified_results:
+        return synthesize_answer(raw_input, verified_results)
+
+    return llm.invoke(
+        f"Answer clearly and concisely:\n{raw_input}"
+    ).content.strip()
+
+# =========================================================
+# MAIN AGENT
+# =========================================================
 def run_agent(user_input: str) -> Dict[str, Any]:
     steps: List[str] = []
     tools_used: List[Dict[str, Any]] = []
@@ -182,16 +215,18 @@ def run_agent(user_input: str) -> Dict[str, Any]:
         raw_input = normalize(user_input)
 
         # ------------------------------
-        # 1. DIRECT MATH ROUTE
+        # FAST PATH: MATH
         # ------------------------------
         if is_math_query(raw_input):
             result = calculator_tool(raw_input)
             success = bool(result.get("success", False))
+
             tools_used.append({
                 "tool": "calculator",
                 "query": raw_input,
                 "success": success,
             })
+
             if success:
                 return {
                     "response": str(result["result"]),
@@ -201,74 +236,20 @@ def run_agent(user_input: str) -> Dict[str, Any]:
                 }
 
         # ------------------------------
-        # 2. TOOL DECISION (safe, non-crashing version)
+        # PHASE 1: PLAN
         # ------------------------------
-        tool_prompt = f"""
-You are a tool router. Decide which tools (if any) to use for a user question.
-
-Available tools:
-{build_tool_prompt()}
-
-Rules:
-- choose calculator ONLY for math
-- choose wikipedia for factual questions
-- choose wikidata for structured facts
-- when using wikipedia, generate the most specific query possible
-  to avoid ambiguous terms or disambiguation pages
-- return JSON only
-- If the question is conversational or casual, return exactly:
-{{"tools": []}}
-
-Formatting:
-- Return ONLY JSON.
-- JSON format:
-{{
-  "tools": [
-    {{"name": "tool_name", "query": "query"}}
-  ]
-}}
-- Do not include explanations, extra text, or emojis.
-
-Examples:
-
-Input: "hi"
-Output: {{"tools": []}}
-
-Input: "how are you?"
-Output: {{"tools": []}}
-
-Input: "2 + 2"
-Output: {{"tools": [{{"name": "calculator", "query": "2 + 2"}}]}}
-
-Input: "what is photosynthesis?"
-Output: {{"tools": [{{"name": "wikipedia", "query": "photosynthesis"}}]}}
-
-Input: "largest city in Germany by population"
-Output: {{"tools": [{{"name": "wikidata", "query": "largest city in Germany"}}]}}
-
-Question:
-{raw_input}
-"""
-        decision_text = llm.invoke(tool_prompt).content.strip()
-        decision = safe_json_load(decision_text)
-        tools_to_use = decision.get("tools", [])
-        steps.append(f"tool_plan={tools_to_use}")
+        tools_to_use = plan_tools(raw_input)
+        steps.append(f"plan={tools_to_use}")
 
         # ------------------------------
-        # 3. EXECUTE TOOLS
+        # PHASE 2: EXECUTE
         # ------------------------------
         execute_tools(tools_to_use, raw_input, tools_used, verified_results)
 
         # ------------------------------
-        # 4. SYNTHESIZE FINAL ANSWER
+        # PHASE 3: SYNTHESIZE
         # ------------------------------
-        if verified_results:
-            response = synthesize_answer(raw_input, verified_results)
-        else:
-            # fallback
-            response = llm.invoke(
-                f"Answer clearly and concisely:\n{raw_input}"
-            ).content.strip()
+        response = synthesize(raw_input, verified_results)
 
         return {
             "response": response,
