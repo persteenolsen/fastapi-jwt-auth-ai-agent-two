@@ -15,6 +15,12 @@ logger = logging.getLogger(__name__)
 # LLM
 # ------------------------------
 llm = ChatGroq(
+    
+    # 29-06-2026 - Will soon be out of service
+    # model="llama-3.3-70b-versatile",
+
+    # 
+    # 29-06-2026 - This is the solution for now :-)
     model="openai/gpt-oss-20b",
     temperature=0,
     api_key=GROQ_API_KEY,
@@ -34,8 +40,15 @@ TOOL_REGISTRY = {
 # ------------------------------
 def safe_json_load(text: str) -> Dict[str, Any]:
     try:
+        # 🚨 block accidental tool-call style outputs
+        if '"name"' in text and '"arguments"' in text:
+            return {}
+
         start = text.find("{")
         end = text.rfind("}") + 1
+        if start == -1 or end == 0:
+            return {}
+
         return json.loads(text[start:end])
     except Exception:
         return {}
@@ -55,7 +68,7 @@ def is_math_query(text: str) -> bool:
     if not has_operator:
         return False
     allowed_chars = set("0123456789+-*/%(). ")
-    return all(c in allowed_chars for c in text)
+    return all(c in text for c in allowed_chars)
 
 # ------------------------------
 # WIKIDATA REWRITE
@@ -103,8 +116,6 @@ Question:
 
 Tool data:
 {json.dumps(tool_data, indent=2)}
-
-Return a natural, helpful explanation.
 """
     try:
         return llm.invoke(prompt).content.strip()
@@ -129,6 +140,10 @@ Rules:
 - return JSON only
 - if casual: {{"tools": []}}
 
+IMPORTANT:
+- NEVER output tool execution formats
+- NEVER output {{"name": "..."}}
+
 Format:
 {{
   "tools": [
@@ -141,6 +156,13 @@ Question:
 """
 
     decision_text = llm.invoke(tool_prompt).content.strip()
+
+    # 🧼 extract JSON safely
+    start = decision_text.find("{")
+    end = decision_text.rfind("}") + 1
+    if start != -1 and end != 0:
+        decision_text = decision_text[start:end]
+
     decision = safe_json_load(decision_text)
     return decision.get("tools", [])
 
@@ -214,9 +236,7 @@ def run_agent(user_input: str) -> Dict[str, Any]:
     try:
         raw_input = normalize(user_input)
 
-        # ------------------------------
         # FAST PATH: MATH
-        # ------------------------------
         if is_math_query(raw_input):
             result = calculator_tool(raw_input)
             success = bool(result.get("success", False))
@@ -235,20 +255,14 @@ def run_agent(user_input: str) -> Dict[str, Any]:
                     "error_id": None,
                 }
 
-        # ------------------------------
         # PHASE 1: PLAN
-        # ------------------------------
         tools_to_use = plan_tools(raw_input)
         steps.append(f"plan={tools_to_use}")
 
-        # ------------------------------
         # PHASE 2: EXECUTE
-        # ------------------------------
         execute_tools(tools_to_use, raw_input, tools_used, verified_results)
 
-        # ------------------------------
         # PHASE 3: SYNTHESIZE
-        # ------------------------------
         response = synthesize(raw_input, verified_results)
 
         return {

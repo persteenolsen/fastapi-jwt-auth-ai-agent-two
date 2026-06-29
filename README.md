@@ -4,6 +4,8 @@ A production-style AI Agent API built with FastAPI, featuring JWT authentication
 
 This project implements a modern **3-phase Tool Agent Pipeline (Plan → Execute → Synthesize)** where tools are safely selected, executed, and used to generate grounded responses.
 
+---
+
 # Version
 
 At Render I use the PYTHON_VERSION environment variable to ensure Python 3.11. Locally I am using Python 3.12.
@@ -31,7 +33,7 @@ At Render I use the PYTHON_VERSION environment variable to ensure Python 3.11. L
 
 ### 🤖 AI Agent (Structured Tool System)
 
-This system is a **tool-calling agent**, but with strict separation of responsibilities:
+This system is a tool-calling agent with strict separation of responsibilities:
 
 - Phase 1: Plan (LLM decides which tools to use)
 - Phase 2: Execute (Python safely runs tools from registry)
@@ -46,6 +48,7 @@ Key properties:
 ---
 
 ### 🧠 LLM Integration (Groq)
+
 - Model: openai/gpt-oss-20b
 - High-speed inference via Groq API
 - Temperature set to 0 for deterministic behavior
@@ -56,7 +59,20 @@ Key properties:
 
 ---
 
+### 🛡️ LLM Output Safety Layer
+
+Because some models (including OSS models via Groq) may occasionally output structured tool-call-like JSON even when tool calling is not enabled, the system includes a safety layer that:
+
+- Detects and ignores accidental tool-call outputs ({"name": ..., "arguments": ...})
+- Extracts valid JSON from mixed or noisy model outputs
+- Prevents malformed outputs from crashing the pipeline
+
+This ensures stable execution even when the LLM deviates from expected formatting.
+
+---
+
 ### 🧩 Tool Registry System
+
 - Central TOOL_REGISTRY controls all available tools
 - LLM receives tool capabilities dynamically
 - Adding tools requires only registration, no architecture changes
@@ -68,6 +84,7 @@ Key properties:
 ---
 
 ### ➗ Calculator Tool
+
 - Safe AST-based arithmetic evaluator (no eval usage)
 - Supports: +, -, *, /, %, **, // and parentheses
 - Fully sandboxed execution
@@ -76,6 +93,7 @@ Key properties:
 ---
 
 ### 🌐 Wikipedia Tool
+
 - Two-step retrieval:
   - Search API for entity resolution
   - Summary API for content extraction
@@ -84,6 +102,7 @@ Key properties:
 ---
 
 ### 🧾 Wikidata Tool
+
 - Structured entity and fact retrieval
 - LLM-assisted query simplification
 - Optimized for rankings and factual comparisons
@@ -180,14 +199,14 @@ This ensures:
 
 ## 🧠 LLM Swap Resilience (Important Design Insight)
 
-One of the key architectural strengths of this system is that it is **largely model-agnostic**. The underlying agent does not depend on a specific LLM behaving perfectly, because the LLM is not responsible for execution or system control.
+One of the key architectural strengths of this system is that it is model-agnostic with a lightweight output sanitization layer to handle occasional non-conforming LLM outputs.
 
 ### 🔁 What happens if you change the LLM?
 
 If the underlying model is replaced (e.g., switching to a newer or different provider/model), the system will continue to function because:
 
 ### ✔ The LLM only handles:
-- Tool planning (deciding *what to use*)
+- Tool planning (deciding what to use)
 - Response synthesis (formatting final output)
 
 ### ✔ The system does NOT rely on the LLM for:
@@ -212,7 +231,7 @@ The architecture is intentionally designed so that:
 - Execution pipeline (Plan → Execute → Synthesize)
 
 ### 🧠 LLM is a replaceable component
-The model acts as a **reasoning assistant**, not a system controller.
+The model acts as a reasoning assistant, not a system controller.
 
 ---
 
@@ -238,11 +257,6 @@ While the system remains stable, output behavior may vary in:
 
 > The system is designed so that intelligence can change, but execution correctness cannot.
 
-This separation ensures:
-- Stable production behavior
-- Safe model upgrades or replacements
-- Predictable system outputs even with different LLM providers
-
 ---
 
 ## 🔥 Practical Implication
@@ -255,9 +269,9 @@ You can upgrade, downgrade, or replace the LLM at any time without modifying:
 
 Only prompt behavior and reasoning quality will vary — not system correctness or safety.
 
-### 🟢 Structured Tool Agent (Current System)
+---
 
-This system is built around a strict separation of concerns:
+## 🟢 Structured Tool Agent (Current System)
 
 - Planner (LLM): decides which tools to use
 - Executor (Python): runs tools safely
