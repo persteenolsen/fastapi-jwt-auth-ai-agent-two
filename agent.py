@@ -15,16 +15,7 @@ logger = logging.getLogger(__name__)
 # LLM
 # ------------------------------
 llm = ChatGroq(
-    
-    # 29-06-2026 - This model was tested and works, but will soon be out of service at Groq
-    # model="llama-3.3-70b-versatile",
-
-    # 29-06-2026 - This model was tested and works
-    #model="openai/gpt-oss-20b",
-
-    # 30-06-2026 - This model is being tested and seems to work
     model="openai/gpt-oss-120b",
-
     temperature=0,
     api_key=GROQ_API_KEY,
 )
@@ -39,51 +30,66 @@ TOOL_REGISTRY = {
 }
 
 # ------------------------------
-# SAFE JSON PARSER
+# SAFE JSON PARSER (IMPROVED ONLY)
 # ------------------------------
 def safe_json_load(text: str) -> Dict[str, Any]:
     try:
-        # 🟡 1. block obvious tool-call style outputs (very cheap check)
-        if '"name"' in text and '"arguments"' in text:
-            return {}
-
-        # 🟡 2. extract JSON block safely
         start = text.find("{")
-        end = text.rfind("}") + 1
+        end = text.rfind("}")
 
-        if start == -1 or end <= start:
-            return {}
-
-        candidate = text[start:end]
-
-        data = json.loads(candidate)
-
-        # 🟡 3. minimal structural validation (cheap + safe)
-        if not isinstance(data, dict):
-            return {}
-
-        if "tools" not in data:
-            return {}
-
-        if not isinstance(data["tools"], list):
+        if start == -1 or end == -1 or end <= start:
+            logger.warning("No JSON object found in LLM output")
+            logger.debug(f"Raw output:\n{text}")
             return {"tools": []}
 
-        # 🟡 4. lightweight cleanup (no heavy logic)
+        candidate = text[start:end + 1]
+
+        try:
+            data = json.loads(candidate)
+        except json.JSONDecodeError as e:
+            logger.warning(f"JSON decode error: {e}")
+            logger.debug(f"Bad JSON:\n{candidate}")
+            return {"tools": []}
+
+        if not isinstance(data, dict):
+            logger.warning("JSON root is not an object")
+            return {"tools": []}
+
+        tools = data.get("tools")
+
+        if not isinstance(tools, list):
+            logger.warning("Missing or invalid 'tools' list")
+            return {"tools": []}
+
         cleaned_tools = []
-        for t in data["tools"]:
-            if (
-                isinstance(t, dict)
-                and isinstance(t.get("name"), str)
-                and isinstance(t.get("query"), str)
-            ):
-                cleaned_tools.append({
-                    "name": t["name"],
-                    "query": t["query"]
-                })
+
+        for i, t in enumerate(tools):
+            if not isinstance(t, dict):
+                logger.warning(f"Tool[{i}] invalid: {t}")
+                continue
+
+            name = t.get("name")
+            query = t.get("query")
+
+            if not isinstance(name, str) or not isinstance(query, str):
+                logger.warning(f"Tool[{i}] malformed: {t}")
+                continue
+
+            name = name.strip()
+            query = query.strip()
+
+            if not name or not query:
+                continue
+
+            cleaned_tools.append({
+                "name": name,
+                "query": query
+            })
 
         return {"tools": cleaned_tools}
 
     except Exception:
+        logger.exception("Unexpected error in safe_json_load")
         return {"tools": []}
 
 # ------------------------------
@@ -190,11 +196,10 @@ Question:
 
     decision_text = llm.invoke(tool_prompt).content.strip()
 
-    # 🧼 extract JSON safely
     start = decision_text.find("{")
-    end = decision_text.rfind("}") + 1
-    if start != -1 and end != 0:
-        decision_text = decision_text[start:end]
+    end = decision_text.rfind("}")
+    if start != -1 and end != -1 and end >= start:
+        decision_text = decision_text[start:end + 1]
 
     decision = safe_json_load(decision_text)
     return decision.get("tools", [])
