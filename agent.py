@@ -43,18 +43,48 @@ TOOL_REGISTRY = {
 # ------------------------------
 def safe_json_load(text: str) -> Dict[str, Any]:
     try:
-        # 🚨 block accidental tool-call style outputs
+        # 🟡 1. block obvious tool-call style outputs (very cheap check)
         if '"name"' in text and '"arguments"' in text:
             return {}
 
+        # 🟡 2. extract JSON block safely
         start = text.find("{")
         end = text.rfind("}") + 1
-        if start == -1 or end == 0:
+
+        if start == -1 or end <= start:
             return {}
 
-        return json.loads(text[start:end])
+        candidate = text[start:end]
+
+        data = json.loads(candidate)
+
+        # 🟡 3. minimal structural validation (cheap + safe)
+        if not isinstance(data, dict):
+            return {}
+
+        if "tools" not in data:
+            return {}
+
+        if not isinstance(data["tools"], list):
+            return {"tools": []}
+
+        # 🟡 4. lightweight cleanup (no heavy logic)
+        cleaned_tools = []
+        for t in data["tools"]:
+            if (
+                isinstance(t, dict)
+                and isinstance(t.get("name"), str)
+                and isinstance(t.get("query"), str)
+            ):
+                cleaned_tools.append({
+                    "name": t["name"],
+                    "query": t["query"]
+                })
+
+        return {"tools": cleaned_tools}
+
     except Exception:
-        return {}
+        return {"tools": []}
 
 # ------------------------------
 # NORMALIZATION
