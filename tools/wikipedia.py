@@ -54,9 +54,24 @@ def wikipedia_tool(query: str) -> Dict[str, Any]:
 
 # ------------------------------
 # Wikidata tool (optional to move later)
-# ------------------------------
 def wikidata_tool(query: str) -> Dict[str, Any]:
+    """
+    Search Wikidata and return a human-readable summary.
+
+    Returns:
+    {
+        "success": bool,
+        "source": "wikidata",
+        "title": "...",
+        "content": "..."
+    }
+    """
+
     try:
+
+        # ------------------------------------
+        # First search
+        # ------------------------------------
         r = session.get(
             "https://www.wikidata.org/w/api.php",
             params={
@@ -64,20 +79,110 @@ def wikidata_tool(query: str) -> Dict[str, Any]:
                 "search": query,
                 "language": "en",
                 "format": "json",
+                "limit": 1,
             },
             timeout=8,
         )
-        results = r.json().get("search", [])
-        if not results:
-            return {"success": False, "source": "wikidata", "content": "No results"}
 
-        item = results[0]
+        results = r.json().get("search", [])
+
+        # ------------------------------------
+        # Retry with simplified query
+        # ------------------------------------
+        if not results:
+
+            stopwords = {
+                "host", "hosts", "hosting",
+                "largest", "highest", "most",
+                "capital", "population",
+                "country", "city",
+                "who", "what", "where",
+                "is", "are", "the", "of"
+            }
+
+            simplified = " ".join(
+                w for w in query.split()
+                if w.lower() not in stopwords
+            )
+
+            if simplified and simplified != query:
+
+                r = session.get(
+                    "https://www.wikidata.org/w/api.php",
+                    params={
+                        "action": "wbsearchentities",
+                        "search": simplified,
+                        "language": "en",
+                        "format": "json",
+                        "limit": 1,
+                    },
+                    timeout=8,
+                )
+
+                results = r.json().get("search", [])
+
+        if not results:
+            return {
+                "success": False,
+                "source": "wikidata",
+                "content": "No Wikidata entity found."
+            }
+
+        entity = results[0]
+        entity_id = entity["id"]
+
+        # ------------------------------------
+        # Fetch full entity
+        # ------------------------------------
+        r = session.get(
+            f"https://www.wikidata.org/wiki/Special:EntityData/{entity_id}.json",
+            timeout=8,
+        )
+
+        entity_json = r.json()["entities"][entity_id]
+
+        label = (
+            entity_json
+            .get("labels", {})
+            .get("en", {})
+            .get("value", entity.get("label", ""))
+        )
+
+        description = (
+            entity_json
+            .get("descriptions", {})
+            .get("en", {})
+            .get("value", "")
+        )
+
+        aliases = entity_json.get("aliases", {}).get("en", [])
+
+        alias_text = ", ".join(
+            a["value"] for a in aliases[:5]
+        )
+
+        claims = entity_json.get("claims", {})
+
+        content = description
+
+        if alias_text:
+            content += f"\nAliases: {alias_text}"
+
+        if claims:
+            content += f"\nWikidata properties: {len(claims)}"
+
         return {
             "success": True,
             "source": "wikidata",
-            "title": item.get("label"),
-            "content": item.get("description", ""),
+            "title": label,
+            "content": content.strip(),
         }
+
     except Exception:
         logger.error(traceback.format_exc())
-        return {"success": False, "source": "wikidata", "content": "Wikidata crashed"}
+
+        return {
+            "success": False,
+            "source": "wikidata",
+            "content": "Wikidata crashed."
+        }

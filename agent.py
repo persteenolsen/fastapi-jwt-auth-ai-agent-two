@@ -20,7 +20,7 @@ llm = ChatGroq(
     # model="llama-3.3-70b-versatile",
 
     # 29-06-2026 - This model was tested and works
-    # model="openai/gpt-oss-20b",
+    #model="openai/gpt-oss-20b",
 
     # 30-06-2026 - This model is being tested and seems to work
     model="openai/gpt-oss-120b",

@@ -324,6 +324,30 @@ steps: tool_plan includes wikipedia query
 
 ---
 
+### Wikidata Example
+
+POST /chat
+{
+  "message":"Where will the 2028 Summer Olympics be held?"
+}
+
+{
+  "response": "The 2028 Summer Olympics (Games of the XXXIV Olympiad) will be held in **Los Angeles, USA**【source: wikidata, title: 2028 Summer Olympics】.",
+  "tools_used": [
+    {
+      "tool": "wikidata",
+      "query": "2028 Summer Olympics",
+      "success": true
+    }
+  ],
+  "steps": [
+    "plan=[{'name': 'wikidata', 'query': '2028 Summer Olympics'}]"
+  ],
+  "error_id": null
+}
+
+---
+
 ## 🚀 Benefits
 
 - Clean separation of planning, execution, and reasoning
