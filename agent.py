@@ -16,11 +16,14 @@ logger = logging.getLogger(__name__)
 # ------------------------------
 llm = ChatGroq(
     
-    # 29-06-2026 - Will soon be out of service at Groq
+    # 29-06-2026 - This model was tested and works, but will soon be out of service at Groq
     # model="llama-3.3-70b-versatile",
 
-    # 29-06-2026 - This is the solution for now :-)
-    model="openai/gpt-oss-20b",
+    # 29-06-2026 - This model was tested and works
+    # model="openai/gpt-oss-20b",
+
+    # 30-06-2026 - This model is being tested and seems to work
+    model="openai/gpt-oss-120b",
 
     temperature=0,
     api_key=GROQ_API_KEY,

@@ -17,7 +17,7 @@ At Render I use the PYTHON_VERSION environment variable to ensure Python 3.11. L
 - Version: 0.2.0
 - Python: 3.11 / 3.12
 - Architecture: Structured Tool Agent (Plan → Execute → Synthesize)
-- Last Updated: 29-06-2026
+- Last Updated: 30-06-2026
 
 ---
 
@@ -49,7 +49,8 @@ Key properties:
 
 ### 🧠 LLM Integration (Groq)
 
-- Model: openai/gpt-oss-20b
+- Model: openai/gpt-oss-120b - Being tested and seems to work
+- Model: openai/gpt-oss-20b - Tested and works
 - High-speed inference via Groq API
 - Temperature set to 0 for deterministic behavior
 - Used for:

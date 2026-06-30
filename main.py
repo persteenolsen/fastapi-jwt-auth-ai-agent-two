@@ -7,7 +7,7 @@ from routes import router
 # -----------------------------
 app = FastAPI(
     title="FastAPI with JWT Auth serving a Tool-Calling AI Agent",
-    description="29-06-2026 - FastAPI with JWT Auth serving a Tool-Calling AI Agent, built to use tools like Calculator and Wikipedia if decided by the Agent",
+    description="30-06-2026 - FastAPI with JWT Auth serving a Tool-Calling AI Agent, built to use tools like Calculator and Wikipedia if decided by the Agent",
     version="1.0.0",
     contact={
         "name": "Per Olsen",
