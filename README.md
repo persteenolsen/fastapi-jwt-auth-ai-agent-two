@@ -2,13 +2,13 @@
 
 A production-style AI Agent API built with FastAPI, featuring JWT authentication and a structured tool-calling architecture powered by Groq LLMs.
 
-This project implements a modern **3-phase Tool Agent Pipeline (Plan → Execute → Synthesize)** where tools are safely selected, executed, and used to generate grounded responses.
+The agent follows a deterministic **Plan → Execute → Synthesize** pipeline, where the LLM proposes tool usage while Python retains full control over execution. This separation keeps tool usage safe, predictable, and easy to extend.
 
 ---
 
 # Version
 
-At Render I use the `PYTHON_VERSION` environment variable to ensure Python 3.11. Locally I am using Python 3.12.
+Production (Render) uses the `PYTHON_VERSION` environment variable with **Python 3.11**. Local development uses **Python 3.12**.
 
 ---
 
@@ -16,104 +16,119 @@ At Render I use the `PYTHON_VERSION` environment variable to ensure Python 3.11.
 
 - Version: 0.2.1
 - Python: 3.11 / 3.12
-- Architecture: Structured Tool Agent (Plan → Execute → Synthesize)
-- Last Updated: 30-06-2026
+- Architecture: Plan → Execute → Synthesize
+- Last Updated: 01-07-2026
+
+---
+
+## 🎯 Use Cases
+
+This project can serve as the foundation for:
+
+- 🤖 AI assistants
+- ⚡ FastAPI AI backends
+- 🧠 Tool-augmented LLM systems
+- 🧪 Agent experimentation
+- 🎓 Educational projects
+- 🔬 LLM tool-calling research
+- 🔌 Plugin- and API-driven AI applications
+- 🏢 Internal enterprise AI services
 
 ---
 
 ## ✨ Key Features
 
 ### 🔐 Authentication
-- JWT-based authentication (HS256)
+
+- JWT authentication (HS256)
 - Protected `/chat` endpoint
-- Token-based access control
-- Environment-based credentials
+- Token-based authorization
+- Environment-based configuration
 
 ---
 
-### 🤖 AI Agent (Structured Tool System)
+### 🤖 Structured AI Agent
 
-This system implements a deterministic tool-calling architecture:
+The agent follows a simple three-phase pipeline:
 
-- Phase 1: Plan (LLM selects tools or no tools)
-- Phase 2: Execute (Python safely runs tools from registry)
-- Phase 3: Synthesize (LLM generates final grounded response)
+1. **Plan** – The LLM decides whether tools are needed.
+2. **Execute** – Python validates and safely executes approved tools.
+3. **Synthesize** – The LLM generates a grounded final response using tool results.
 
 Key properties:
-- LLM cannot directly execute tools
-- Tools are validated through a strict registry
-- Execution is deterministic and fully controlled
-- Safe fallback to direct LLM response when no tools are needed
+
+- LLM never executes tools directly
+- Tool access is controlled through a registry
+- Deterministic execution in Python
+- Safe fallback when no tools are required
 
 ---
 
 ### 🧠 LLM Integration (Groq)
 
-- Model: `openai/gpt-oss-120b` (primary, under evaluation)
-- Model: `openai/gpt-oss-20b` (tested and stable)
-- High-speed inference via Groq API
-- Temperature set to 0 for deterministic behavior
-- Used for:
-  - Tool planning
-  - Wikidata query rewriting
-  - Final synthesis
+- Primary model: `openai/gpt-oss-120b`
+- Stable model: `openai/gpt-oss-20b`
+- High-speed inference through Groq
+- Temperature = 0 for deterministic planning
+
+Used for:
+
+- Tool planning
+- Wikidata query simplification
+- Final response synthesis
 
 ---
 
-### 🛡️ Robust JSON Safety Layer (NEW)
+### 🛡️ Robust JSON Safety Layer
 
-The system now includes an improved **robust JSON parsing layer** for LLM outputs.
+Since LLMs may occasionally return malformed structured output, the agent includes a defensive parsing layer that:
 
-Because LLMs may return malformed or noisy structured outputs, the system ensures stability by:
-
-- Extracting JSON safely from mixed text responses
-- Strict schema validation (`dict → tools list → tool objects`)
-- Rejecting malformed tool definitions
-- Logging parsing issues for debugging
-- Never crashing the agent on invalid model output
-- Always failing safely with an empty tool list
-
-This makes the agent resilient to:
-- Extra explanatory text around JSON
-- Broken or partial JSON responses
-- Missing or malformed tool definitions
+- Safely extracts JSON from mixed responses
+- Validates tool schemas
+- Rejects malformed tool definitions
+- Logs parsing errors
+- Falls back safely without crashing
 
 ---
 
-### 🧩 Tool Registry System
+### 🧩 Tool Registry
 
-- Central `TOOL_REGISTRY` controls all available tools
-- LLM receives tool capabilities dynamically
-- Adding tools requires no architectural changes
-- Built-in tools:
-  - Wikipedia (general knowledge)
-  - Wikidata (structured facts and rankings)
-  - Calculator (safe arithmetic engine)
+A centralized `TOOL_REGISTRY` defines every available tool.
 
----
+Benefits:
 
-### ➗ Calculator Tool
+- Controlled tool access
+- Easy extensibility
+- No architectural changes when adding tools
 
-- Safe AST-based arithmetic evaluator (no `eval`)
-- Supports: `+ - * / % ** //` and parentheses
-- Fully sandboxed execution
-- Automatically used for valid math expressions
+Current tools:
+
+- Wikipedia
+- Wikidata
+- Calculator
 
 ---
 
-### 🌐 Wikipedia Tool
+### ➗ Calculator
 
-- Two-step retrieval:
-  - Search API for entity resolution
-  - Summary API for content extraction
-- Robust retry handling and fallback logic
+- Safe AST-based arithmetic (no `eval`)
+- Supports `+ - * / % ** //` and parentheses
+- Sandboxed execution
 
 ---
 
-### 🧾 Wikidata Tool
+### 🌐 Wikipedia
 
-- Structured entity and fact retrieval
-- LLM-assisted query simplification
+- Search API for entity resolution
+- Summary API for content retrieval
+- Retry and fallback handling
+
+---
+
+### 🧾 Wikidata
+
+- Structured fact retrieval
+- LLM-assisted query rewriting
 - Optimized for rankings and comparisons
 
 ---
@@ -122,37 +137,34 @@ This makes the agent resilient to:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/login` | Get JWT access token |
-| POST | `/chat` | Chat with AI agent |
-| GET | `/health` | Service health check |
-| GET | `/health/tools/{tool_name}` | Tool health check |
+| POST | `/login` | Get JWT token |
+| POST | `/chat` | Chat with the AI agent |
+| GET | `/health` | Service health |
+| GET | `/health/tools/{tool_name}` | Tool health |
 
 ---
 
 ## ⚙️ Getting Started
 
-### 1. Clone Repository
+### Clone
 
-git clone https://github.com/your-username/your-repo.git  
+git clone https://github.com/your-username/your-repo.git
+
 cd your-repo
 
----
-
-### 2. Create Virtual Environment
+### Create Virtual Environment
 
 python -m venv venv
 
-Activate:
-
 Windows:
+
 venv\Scripts\activate
 
-Mac/Linux:
+macOS/Linux:
+
 source venv/bin/activate
 
----
-
-### 3. Install Dependencies
+### Install
 
 pip install -r requirements.txt
 
@@ -162,145 +174,115 @@ pip install -r requirements.txt
 
 Create a `.env` file:
 
-SECRET_KEY=your_secret_key_here  
-GROQ_API_KEY=your_groq_api_key  
-FAKE_USERNAME=admin  
-FAKE_PASSWORD=password  
+SECRET_KEY=your_secret_key_here
 
-Generate secret key:
+GROQ_API_KEY=your_groq_api_key
+
+FAKE_USERNAME=admin
+
+FAKE_PASSWORD=password
+
+Generate a secret key:
 
 python -c "import secrets; print(secrets.token_hex(32))"
 
 ---
 
-## ▶️ Run Application
+## ▶️ Run
 
 uvicorn main:app --reload
 
-API: http://127.0.0.1:8000  
-Docs: http://127.0.0.1:8000/docs  
+API:
+
+http://127.0.0.1:8000
+
+Swagger Docs:
+
+http://127.0.0.1:8000/docs
 
 ---
 
 ## 🔐 Authentication Flow
 
-1. Call `/login` with credentials  
-2. Receive JWT token  
-3. Send token in header: Authorization: Bearer <token>  
-4. Access `/chat` endpoint  
+1. Request a JWT token from `/login`
+2. Include it in the `Authorization: Bearer <token>` header
+3. Access the protected `/chat` endpoint
 
 ---
 
 ## 🧠 How the Agent Works
 
-User input flows through a structured pipeline:
+User Input
 
-User Input  
-→ Phase 1: LLM plans tool usage  
-→ Phase 2: Python executes tools safely from registry  
-→ Phase 3: LLM synthesizes final grounded response  
+→ Plan (LLM)
 
-This ensures:
-- Deterministic execution
-- Safe tool usage
-- Reduced hallucination risk
-- Full traceability of decisions
+→ Execute (Python tools)
+
+→ Synthesize (LLM)
+
+This architecture provides:
+
+- Safe tool execution
+- Deterministic behavior
+- Reduced hallucinations through tool grounding
+- Full traceability
 
 ---
 
 ## 🏗️ Architecture
 
-## 🧠 LLM Swap Resilience (Important Design Insight)
+### 🔁 Model-Agnostic Design
 
-The system is intentionally model-agnostic with a lightweight safety layer to handle malformed outputs.
+The LLM is intentionally treated as a replaceable reasoning component.
 
-### 🔁 What happens if you change the LLM?
+It is responsible for:
 
-If the model is replaced or upgraded, the system remains stable because:
-
-### ✔ The LLM only handles:
 - Tool planning
 - Response synthesis
 
-### ✔ The system does NOT rely on the LLM for:
+It is **not** responsible for:
+
 - Tool execution
 - Mathematical correctness
 - External data retrieval
 - Safety validation
 
-These are handled entirely by deterministic Python code and tools.
+These responsibilities remain entirely within deterministic Python code.
 
----
-
-## ⚙️ Why the system remains stable
-
-### 🧩 Deterministic layers
-- Calculator (AST engine)
-- Wikipedia API
-- Wikidata API
-- Tool registry
-- Execution pipeline
-
-### 🧠 LLM is a replaceable component
-The model is a reasoning assistant, not a system controller.
-
----
-
-## 🚨 What may change when swapping LLMs
-
-### 📌 Tool selection quality
-Better models → better tool usage decisions  
-Weaker models → may skip tools or overuse direct answers  
-
-### 📌 Query quality
-Better models → more precise queries  
-Weaker models → ambiguous queries  
-
-### 📌 Response style
-Tone may change, but grounding remains tool-based
-
----
-
-## 🧠 Key Principle
-
-> Intelligence can change, but execution correctness cannot.
-
----
-
-## 🔥 Practical Implication
-
-You can upgrade or replace the LLM without changing:
-- tools
-- architecture
-- execution logic
-- API layer
-
-Only reasoning quality changes.
+Changing models primarily affects reasoning quality—not system correctness or architecture.
 
 ---
 
 ## 🟢 Structured Tool Agent
 
-- Planner (LLM)
-- Executor (Python)
-- Synthesizer (LLM)
+Planner (LLM)
 
-Key properties:
-- No direct tool execution by LLM
-- No ReAct loop
-- Single-pass planning
-- Fully traceable execution
+↓
+
+Executor (Python)
+
+↓
+
+Synthesizer (LLM)
+
+Core principles:
+
+- LLM suggests actions
+- Python enforces rules
+- Tools perform deterministic work
 
 ---
 
 ## 💬 Example Requests
 
-### No Tool Example
+### No Tool
 
-POST /chat  
+POST /chat
+
 { "message": "Tell me a joke" }
 
 Response:
+
 {
   "response": "Why don’t scientists trust atoms? Because they make up everything!",
   "tools_used": [],
@@ -310,12 +292,14 @@ Response:
 
 ---
 
-### Calculator Example
+### Calculator
 
-POST /chat  
+POST /chat
+
 { "message": "What is 25 * 18 + 10?" }
 
 Response:
+
 {
   "response": "460",
   "tools_used": [
@@ -324,21 +308,19 @@ Response:
       "query": "25 * 18 + 10",
       "success": true
     }
-  ],
-  "steps": [
-    "plan=[{'name': 'calculator', 'query': '25 * 18 + 10'}]"
-  ],
-  "error_id": null
+  ]
 }
 
 ---
 
-### Wikipedia Example
+### Wikipedia
 
-POST /chat  
+POST /chat
+
 { "message": "What is AI?" }
 
 Response:
+
 {
   "response": "Artificial intelligence is ...",
   "tools_used": [
@@ -347,21 +329,19 @@ Response:
       "query": "Artificial intelligence",
       "success": true
     }
-  ],
-  "steps": [
-    "plan=[{'name': 'wikipedia', 'query': 'Artificial intelligence'}]"
-  ],
-  "error_id": null
+  ]
 }
 
 ---
 
-### Wikidata Example
+### Wikidata
 
-POST /chat  
+POST /chat
+
 { "message": "Where will the 2028 Summer Olympics take place?" }
 
 Response:
+
 {
   "response": "Los Angeles, United States",
   "tools_used": [
@@ -370,11 +350,7 @@ Response:
       "query": "2028 Summer Olympics host city",
       "success": true
     }
-  ],
-  "steps": [
-    "plan=[{'name': 'wikidata', 'query': '2028 Summer Olympics host city'}]"
-  ],
-  "error_id": null
+  ]
 }
 
 ---
@@ -382,18 +358,18 @@ Response:
 ## 🚀 Benefits
 
 - Clean separation of concerns
-- Fully extensible tool system
-- Safe deterministic execution
-- Reduced hallucinations via tool grounding
+- Extensible tool architecture
+- Deterministic execution
+- Grounded responses
 - Easy debugging and traceability
 
 ---
 
 ## 🚧 Current Limitations
 
-- Stateless per request
+- Stateless requests
 - Single planning step
-- No streaming responses
+- No streaming
 - Limited tool ecosystem
 
 ---
@@ -404,71 +380,25 @@ Response:
 - Streaming (SSE/WebSockets)
 - Parallel tool execution
 - Tool confidence scoring
-- Caching layer
+- Response caching
 - Multi-step planning
+
+---
+
+## 💡 Design Philosophy
+
+> **The LLM proposes what might make sense. Your code decides what is actually allowed.**
+
+Separating **suggestion** from **enforcement** makes the system safer, easier to debug, and simpler to extend. The LLM explores possibilities, while Python validates requests, executes tools, and enforces system rules.
+
+---
+
+## 🙌 Final Notes
+
+This project demonstrates a structured approach to AI agents where reasoning, execution, and safety are intentionally separated. The result is a modular architecture that can evolve with new tools or newer language models while keeping execution deterministic and controlled.
 
 ---
 
 ## 📄 License
 
 MIT License
-
----
-
-## 🧠 Aha Moment: How This Agent Really Works
-
-At the core of this system is a simple but powerful idea:
-
-> **The LLM proposes what might make sense.  
-> Your code decides what is actually allowed.**
-
-Once you understand this split, everything else in agent design becomes much easier to reason about.
-
-It explains:
-
-- why tool validation is necessary  
-- why JSON parsing exists at all  
-- why a tool registry is important  
-- why guardrails are not optional extras, but core design  
-
-All of these are consequences of separating **suggestion (LLM)** from **enforcement (code)**.
-
----
-
-## 🔧 What this changes in how you think
-
-From this perspective, the system stops being “an AI that does everything” and becomes a structured pipeline:
-
-- The LLM explores possibilities
-- The code enforces rules and safety
-- Tools execute real, deterministic actions
-
----
-
-## 🚀 Why this matters
-
-As you build further, this mental model helps you naturally see:
-
-- where new tools should be added  
-- where stricter safety checks are needed  
-- where the LLM is useful  
-- and where it should never be trusted directly  
-
----
-
-## 🧭 Key Insight
-
-This separation between **suggestion and enforcement** is the foundation of reliable AI agents.
-
-Once you see it, you can’t unsee it — and every part of the system starts to make sense from it.
-
----
-
-## 🙌 Final Notes
-
-This system is a structured tool-calling architecture where:
-- tools are deterministic
-- LLM is planner + narrator
-- execution is fully controlled
-
-It is designed for stability, debuggability, and safe extensibility.
